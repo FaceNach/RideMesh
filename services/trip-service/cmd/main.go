@@ -18,7 +18,7 @@ func main() {
 
 	//keep the prog running
 
-	log.Println("Starting API Gateway")
+	log.Println("Starting Trip Service")
 
 	mux := http.NewServeMux()
 

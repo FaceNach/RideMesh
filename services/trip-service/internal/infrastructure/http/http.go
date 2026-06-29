@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"ride-sharing/services/trip-service/internal/domain"
 	"ride-sharing/services/trip-service/internal/service"
 	"ride-sharing/shared/types"
 )
@@ -31,11 +30,7 @@ func (s *HttpHandler) HandleTripPreview(w http.ResponseWriter, r *http.Request) 
 
 	ctx := r.Context()
 
-	fare := &domain.RideFareModel{
-		UserID: "42",
-	}
-
-	trip, err := s.Service.CreateTrip(ctx, fare)
+	trip, err := s.Service.GetRoute(ctx, &reqBody.Pickup, &reqBody.Destination)
 	if err != nil {
 		log.Printf("%v", err)
 	}
