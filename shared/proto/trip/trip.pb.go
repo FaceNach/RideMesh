@@ -257,7 +257,7 @@ type RideFare struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	UserID            string                 `protobuf:"bytes,2,opt,name=userID,proto3" json:"userID,omitempty"`
-	PackageSlig       string                 `protobuf:"bytes,3,opt,name=packageSlig,proto3" json:"packageSlig,omitempty"`
+	PackageSlug       string                 `protobuf:"bytes,3,opt,name=packageSlug,proto3" json:"packageSlug,omitempty"`
 	TotalPriceInCents float64                `protobuf:"fixed64,4,opt,name=totalPriceInCents,proto3" json:"totalPriceInCents,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
@@ -307,9 +307,9 @@ func (x *RideFare) GetUserID() string {
 	return ""
 }
 
-func (x *RideFare) GetPackageSlig() string {
+func (x *RideFare) GetPackageSlug() string {
 	if x != nil {
-		return x.PackageSlig
+		return x.PackageSlug
 	}
 	return ""
 }
@@ -486,7 +486,7 @@ const file_trip_proto_rawDesc = "" +
 	"\bRideFare\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06userID\x18\x02 \x01(\tR\x06userID\x12 \n" +
-	"\vpackageSlig\x18\x03 \x01(\tR\vpackageSlig\x12,\n" +
+	"\vpackageSlug\x18\x03 \x01(\tR\vpackageSlug\x12,\n" +
 	"\x11totalPriceInCents\x18\x04 \x01(\x01R\x11totalPriceInCents\">\n" +
 	"\bGeometry\x122\n" +
 	"\vcoordinates\x18\x01 \x03(\v2\x10.trip.CoordinateR\vcoordinates\"K\n" +

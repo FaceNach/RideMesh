@@ -36,6 +36,8 @@ func (h *gRPCHandler) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 		Longitude: pickup.Longitude,
 	}
 
+	userID := req.GetUserID()
+
 	destinationCoord := &types.Coordinate{
 		Latitude:  destination.Latitude,
 		Longitude: destination.Longitude,
@@ -47,9 +49,18 @@ func (h *gRPCHandler) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 		return nil, status.Errorf(codes.Internal, "failed to get route: %v", err)
 	}
 
+	estimatedFares := h.service.EstimatePackagesPriceWithRoute(t)
+	fares, err := h.service.GenerateTripFares(ctx, estimatedFares, userID)
+	if err != nil {
+		log.Printf("error trying to generate trip fares: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to generate ride fares: %v", err)
+	}
+
+	faresToProto := domain.ToRideFaresProto(fares)
+
 	return &pb.PreviewTripResponse{
 		Route:     t.ToProto(),
-		RideFares: []*pb.RideFare{},
+		RideFares: faresToProto,
 	}, nil
 }
 
