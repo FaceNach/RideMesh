@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"ride-sharing/services/trip-service/internal/domain"
 	tripTypes "ride-sharing/services/trip-service/pkg/types"
+	"ride-sharing/shared/proto/trip"
 	"ride-sharing/shared/types"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -29,6 +30,7 @@ func (s *Service) CreateTrip(ctx context.Context, fare *domain.RideFareModel) (*
 		UserID:   fare.UserID,
 		Status:   "pending",
 		RideFare: fare,
+		Driver:   &trip.TripDriver{},
 	}
 
 	out, _ := s.repo.CreateTrip(ctx, trip)
@@ -75,16 +77,18 @@ func (s *Service) EstimatePackagesPriceWithRoute(route *tripTypes.OsrmApiRespons
 	return estimatedFares
 }
 
-func (s *Service) GenerateTripFares(ctx context.Context, rideFares []*domain.RideFareModel, userID string) ([]*domain.RideFareModel, error) {
+func (s *Service) GenerateTripFares(ctx context.Context, rideFares []*domain.RideFareModel, userID string, route *tripTypes.OsrmApiResponse) ([]*domain.RideFareModel, error) {
 	fares := make([]*domain.RideFareModel, len(rideFares))
 
 	for i, f := range rideFares {
 		id := primitive.NewObjectID()
+		
 		fare := &domain.RideFareModel{
 			UserID:            userID,
 			ID:                id,
 			TotalPriceInCents: f.TotalPriceInCents,
 			PackageSlug:       f.PackageSlug,
+			Route: route,
 		}
 
 		if err := s.repo.SaveRideFare(ctx, fare); err != nil {
@@ -95,6 +99,23 @@ func (s *Service) GenerateTripFares(ctx context.Context, rideFares []*domain.Rid
 	}
 
 	return fares, nil
+}
+
+func (s *Service) GetAndValidateFares(ctx context.Context, fareID, userID string) (*domain.RideFareModel, error) {
+	fare, err := s.repo.GetRideFareById(ctx, fareID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get trip fare: %v", err)
+	}
+
+	if userID != fare.UserID {
+		return nil, fmt.Errorf("fare does not belong to the user")
+	}
+
+	if fare == nil {
+		return nil, fmt.Errorf("fare does not exist")
+	}
+
+	return fare, nil
 }
 
 func estimateFareRoute(f *domain.RideFareModel, route *tripTypes.OsrmApiResponse) *domain.RideFareModel {
