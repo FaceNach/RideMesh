@@ -64,7 +64,7 @@ func handleTripPreview(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	
 	defer tripService.Close()
 
 	//TODO: Call trip service
