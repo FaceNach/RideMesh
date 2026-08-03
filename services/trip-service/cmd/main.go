@@ -8,6 +8,8 @@ import (
 	"os/signal"
 	"ride-sharing/services/trip-service/internal/infrastructure/repository"
 	"ride-sharing/services/trip-service/internal/service"
+	"ride-sharing/shared/env"
+	"ride-sharing/shared/messaging"
 	"syscall"
 
 	"ride-sharing/services/trip-service/internal/infrastructure/grpc"
@@ -37,6 +39,15 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
+
+	rabbitMqURI := env.GetString("RABBITMQ_URI", "amqp://guest:guest@rabbitmq:5672/")
+	rabbitMQ, err := messaging.NewRabbitMQ(rabbitMqURI)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rabbitMQ.Close()
+
+	log.Println("Starting RabbitMQ connection")
 
 	grpcServer := grpcserver.NewServer()
 	//TODO initialize our grpc handler implementation
