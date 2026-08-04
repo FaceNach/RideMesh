@@ -63,8 +63,9 @@ func (r *RabbitMQ) PublishMessage(ctx context.Context, routingKey string, messag
 		false,      // mandatory
 		false,      // immediate
 		amqp.Publishing{
-			ContentType: "text/plain",
-			Body:        []byte(message),
+			ContentType:  "text/plain",
+			Body:         []byte(message),
+			DeliveryMode: amqp.Persistent,
 		})
 
 }
