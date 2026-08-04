@@ -85,10 +85,15 @@ type MessageHandler func(context.Context, amqp.Delivery) error
 
 func (r *RabbitMQ) ConsumeMessages(queueName string, handler MessageHandler) error {
 
+	err := r.Channel.Qos(1, 0, false)
+	if err != nil {
+		return fmt.Errorf("failed to set Qos: %v", err)
+	}
+
 	msgs, err := r.Channel.Consume(
 		queueName, // queue
 		"",        // consumer
-		true,      // auto-ack
+		false,     // auto-ack
 		false,     // exclusive
 		false,     // no-local
 		false,     // no-wait
@@ -106,8 +111,14 @@ func (r *RabbitMQ) ConsumeMessages(queueName string, handler MessageHandler) err
 			log.Printf("Received a message: %s", msg.Body)
 
 			if err := handler(ctx, msg); err != nil {
-				log.Fatalf("failed to handle the message: %v", err)
+				log.Printf("failed to handle the message: %v. Message body: %v", err, msg)
 			}
+
+			if nackErr := msg.Nack(false, false); err != nil {
+				log.Printf("ERROR: failed to Nack message: %v", nackErr)
+			}
+
+			continue
 		}
 	}()
 
