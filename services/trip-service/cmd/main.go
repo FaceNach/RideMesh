@@ -53,8 +53,6 @@ func main() {
 	
 	publisher := events.NewTripEventPublisher(rabbitMQ)
 
-	
-
 	grpcServer := grpcserver.NewServer()
 	//TODO initialize our grpc handler implementation
 	grpc.NewgRPCHandler(grpcServer, svc, publisher)

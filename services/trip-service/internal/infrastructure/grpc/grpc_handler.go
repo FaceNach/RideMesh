@@ -15,6 +15,7 @@ import (
 
 type gRPCHandler struct {
 	pb.UnimplementedTripServiceServer
+	
 	service   domain.TripService
 	publisher *events.TripEventPublisher
 }
