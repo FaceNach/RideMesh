@@ -45,9 +45,9 @@ func main() {
 
 	log.Println("Starting RabbitMQ connection")
 
-	consumer := NewTripEventConsumer(rabbitMQ)
-
 	service := NewService()
+	consumer := NewTripEventConsumer(rabbitMQ, service)
+
 	grpcServer := grpcserver.NewServer()
 	NewGrpcHandler(grpcServer, service, consumer)
 

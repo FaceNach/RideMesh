@@ -15,7 +15,7 @@ import (
 
 type gRPCHandler struct {
 	pb.UnimplementedTripServiceServer
-	
+
 	service   domain.TripService
 	publisher *events.TripEventPublisher
 }
@@ -44,7 +44,7 @@ func (h *gRPCHandler) CreateTrip(ctx context.Context, req *pb.CreateTripRequest)
 		return nil, status.Errorf(codes.Internal, "failed to create  the trip: %v", err)
 	}
 
-	err = h.publisher.PublishTripCreated(ctx)
+	err = h.publisher.PublishTripCreated(ctx, trip)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to publish the trip created event: %v", err)
 	}
