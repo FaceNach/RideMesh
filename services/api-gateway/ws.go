@@ -5,19 +5,18 @@ import (
 	"net/http"
 	"ride-sharing/services/api-gateway/grpc_clients"
 	"ride-sharing/shared/contracts"
+	"ride-sharing/shared/messaging"
 	"ride-sharing/shared/proto/driver"
-
-	"github.com/gorilla/websocket"
 )
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
-}
+var (
+	connManager = messaging.NewConnectionManager()
+)
 
-func handleDriversWebSocket(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
+func handleRidersWebSocket(w http.ResponseWriter, r *http.Request, rb *messaging.RabbitMQ) {
+	conn, err := connManager.Upgrade(w, r)
 	if err != nil {
-		log.Printf("websocket upgrade failed: %v", err)
+		log.Printf("WebSocket upgrade failed: %v", err)
 		return
 	}
 
@@ -25,15 +24,48 @@ func handleDriversWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.URL.Query().Get("userID")
 	if userID == "" {
-		log.Println("no user ID provided")
+		log.Println("No user ID provided")
+		return
+	}
+
+	// Add connection to manager
+	connManager.Add(userID, conn)
+	defer connManager.Remove(userID)
+
+	for {
+		_, message, err := conn.ReadMessage()
+		if err != nil {
+			log.Printf("Error reading message: %v", err)
+			break
+		}
+
+		log.Printf("Received message: %s", message)
+	}
+}
+
+func handleDriversWebSocket(w http.ResponseWriter, r *http.Request, rb *messaging.RabbitMQ) {
+	conn, err := connManager.Upgrade(w, r)
+	if err != nil {
+		log.Printf("WebSocket upgrade failed: %v", err)
+		return
+	}
+
+	defer conn.Close()
+
+	userID := r.URL.Query().Get("userID")
+	if userID == "" {
+		log.Println("No user ID provided")
 		return
 	}
 
 	packageSlug := r.URL.Query().Get("packageSlug")
 	if packageSlug == "" {
-		log.Println("no package slug provided")
+		log.Println("No package slug provided")
 		return
 	}
+
+	// Add connection to manager
+	connManager.Add(userID, conn)
 
 	ctx := r.Context()
 
@@ -42,69 +74,56 @@ func handleDriversWebSocket(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
+	// Closing connections
 	defer func() {
+		connManager.Remove(userID)
+
 		driverService.Client.UnRegisterDriver(ctx, &driver.RegisterDriverRequest{
 			DriverID:    userID,
 			PackageSlug: packageSlug,
 		})
+
 		driverService.Close()
-		log.Panicln("Driver unregistered: ", userID)
+
+		log.Println("Driver unregistered: ", userID)
 	}()
 
 	driverData, err := driverService.Client.RegisterDriver(ctx, &driver.RegisterDriverRequest{
 		DriverID:    userID,
 		PackageSlug: packageSlug,
 	})
-
 	if err != nil {
-		log.Printf("error registering driver: %v", err)
+		log.Printf("Error registering driver: %v", err)
+		return
 	}
 
-	msg := contracts.WSMessage{
-		Type: "driver.cmd.register",
+	if err := connManager.SendMessage(userID, contracts.WSMessage{
+		Type: contracts.DriverCmdRegister,
 		Data: driverData.Driver,
-	}
-
-	log.Println("Sending Driver info")
-	if err := conn.WriteJSON(msg); err != nil {
+	}); err != nil {
 		log.Printf("Error sending message: %v", err)
 		return
 	}
 
-	for {
-		_, msg, err := conn.ReadMessage()
-		if err != nil {
-			log.Printf("error reading message: %v", err)
-			break
+	queues := []string{
+		messaging.DriverCmdTripRequestQueue,
+	}
+
+	for _, q := range queues {
+		consumer := messaging.NewQueueConsumer(rb, connManager, q)
+
+		if err := consumer.Start(); err != nil {
+			log.Printf("Failed to start consumer for queue: %s: err: %v", q, err)
 		}
-		log.Printf("Recieved msg: %s", msg)
-	}
-
-}
-
-func handleRidersWebSocket(w http.ResponseWriter, r *http.Request) {
-
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Printf("websocket upgrade failed: %v", err)
-		return
-	}
-
-	defer conn.Close()
-
-	userID := r.URL.Query().Get("userID")
-	if userID == "" {
-		log.Println("no user ID provided")
-		return
 	}
 
 	for {
-		_, msg, err := conn.ReadMessage()
+		_, message, err := conn.ReadMessage()
 		if err != nil {
-			log.Printf("error reading message: %v", err)
+			log.Printf("Error reading message: %v", err)
 			break
 		}
 
-		log.Printf("Recieved msg: %s", msg)
+		log.Printf("Received message: %s", message)
 	}
 }
