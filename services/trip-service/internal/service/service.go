@@ -11,6 +11,8 @@ import (
 	"ride-sharing/shared/proto/trip"
 	"ride-sharing/shared/types"
 
+	pbd "ride-sharing/shared/proto/driver"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -82,13 +84,13 @@ func (s *Service) GenerateTripFares(ctx context.Context, rideFares []*domain.Rid
 
 	for i, f := range rideFares {
 		id := primitive.NewObjectID()
-		
+
 		fare := &domain.RideFareModel{
 			UserID:            userID,
 			ID:                id,
 			TotalPriceInCents: f.TotalPriceInCents,
 			PackageSlug:       f.PackageSlug,
-			Route: route,
+			Route:             route,
 		}
 
 		if err := s.repo.SaveRideFare(ctx, fare); err != nil {
@@ -155,4 +157,12 @@ func getBaseFares() []*domain.RideFareModel {
 		},
 	}
 
+}
+
+func (s *Service) GetTripByID(ctx context.Context, id string) (*domain.TripModel, error) {
+	return s.repo.GetTripByID(ctx, id)
+}
+
+func (s *Service) UpdateTrip(ctx context.Context, tripID string, status string, driver *pbd.Driver) error {
+	return s.repo.UpdateTrip(ctx, tripID, status, driver)
 }

@@ -92,6 +92,14 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 		return err
 	}
 
+	if err := r.declareAndBindQueue(
+		NotifyDriverAssignQueue,
+		[]string{contracts.TripEventDriverAssigned},
+		TripExchange,
+	); err != nil {
+		return err
+	}
+
 	return nil
 }
 
