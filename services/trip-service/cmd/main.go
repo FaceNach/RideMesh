@@ -42,18 +42,21 @@ func main() {
 	}
 
 	rabbitMqURI := env.GetString("RABBITMQ_URI", "amqp://guest:guest@rabbitmq:5672/")
-	rabbitMQ, err := messaging.NewRabbitMQ(rabbitMqURI)
+	rabbitmq, err := messaging.NewRabbitMQ(rabbitMqURI)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer rabbitMQ.Close()
+	defer rabbitmq.Close()
 
 	log.Println("Starting RabbitMQ connection")
 
-	publisher := events.NewTripEventPublisher(rabbitMQ)
+	publisher := events.NewTripEventPublisher(rabbitmq)
 
-	driverConsumer := events.NewDriverConsumer(rabbitMQ, svc)
+	driverConsumer := events.NewDriverConsumer(rabbitmq, svc)
 	go driverConsumer.Listen()
+
+	paymentConsumer := events.NewPaymentConsumer(rabbitmq, svc)
+	go paymentConsumer.Listen()
 
 	grpcServer := grpcserver.NewServer()
 	//TODO initialize our grpc handler implementation
