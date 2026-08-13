@@ -11,6 +11,7 @@ import (
 	"ride-sharing/services/trip-service/internal/service"
 	"ride-sharing/shared/env"
 	"ride-sharing/shared/messaging"
+	"ride-sharing/shared/tracing"
 	"syscall"
 
 	"ride-sharing/services/trip-service/internal/infrastructure/grpc"
@@ -23,11 +24,25 @@ var (
 )
 
 func main() {
-	inmemRepo := repository.NewInmemRepository()
-	svc := service.NewTripService(inmemRepo)
+
+	// Initialize Tracing
+	tracerCfg := tracing.Config{
+		ServiceName:    "trip-service",
+		Enviroment:     env.GetString("ENVIROMENT", "development"),
+		JaegerEndPoint: env.GetString("JAEGER_ENDPOINT", "http://jaeger:14268/api/traces"),
+	}
+
+	sh, err := tracing.InitTracer(tracerCfg)
+	if err != nil {
+		log.Fatalf("failed to initialize the tracer: %v", err)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
+	defer sh(ctx)
 	defer cancel()
+
+	inmemRepo := repository.NewInmemRepository()
+	svc := service.NewTripService(inmemRepo)
 
 	go func() {
 		sigCh := make(chan os.Signal, 1)

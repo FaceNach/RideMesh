@@ -11,6 +11,7 @@ import (
 
 	"ride-sharing/shared/env"
 	"ride-sharing/shared/messaging"
+	"ride-sharing/shared/tracing"
 
 	grpcserver "google.golang.org/grpc"
 )
@@ -21,7 +22,20 @@ var (
 
 func main() {
 
+	// Initialize Tracing
+	tracerCfg := tracing.Config{
+		ServiceName:    "driver-service",
+		Enviroment:     env.GetString("ENVIROMENT", "development"),
+		JaegerEndPoint: env.GetString("JAEGER_ENDPOINT", "http://jaeger:14268/api/traces"),
+	}
+
+	sh, err := tracing.InitTracer(tracerCfg)
+	if err != nil {
+		log.Fatalf("failed to initialize the tracer: %v", err)
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
+	defer sh(ctx)
 	defer cancel()
 
 	go func() {
