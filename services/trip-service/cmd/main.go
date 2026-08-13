@@ -73,7 +73,7 @@ func main() {
 	paymentConsumer := events.NewPaymentConsumer(rabbitmq, svc)
 	go paymentConsumer.Listen()
 
-	grpcServer := grpcserver.NewServer()
+	grpcServer := grpcserver.NewServer(tracing.WithTracingInterceptors()...)
 	//TODO initialize our grpc handler implementation
 	grpc.NewgRPCHandler(grpcServer, svc, publisher)
 	log.Printf("Starting gRPC server Trip service on port %s", lis.Addr().String())
