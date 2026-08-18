@@ -104,7 +104,7 @@ func (s *Service) GenerateTripFares(ctx context.Context, rideFares []*domain.Rid
 }
 
 func (s *Service) GetAndValidateFares(ctx context.Context, fareID, userID string) (*domain.RideFareModel, error) {
-	fare, err := s.repo.GetRideFareById(ctx, fareID)
+	fare, err := s.repo.GetRideFareByID(ctx, fareID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get trip fare: %v", err)
 	}
